@@ -28,11 +28,12 @@ IPOPT
      ```
 - Run again via install_ipopt.sh
   
-  ### Installation of CppAD
-    ```
-     ~/Desktop/lpopt/Ipopt-3.12.7$ sudo apt-get install cppad
+### Installation of CppAD
+    
+```
+  ~/Desktop/lpopt/Ipopt-3.12.7$ sudo apt-get install cppad
 
-     ```
+```
 
 
 
