@@ -9,7 +9,7 @@ CppAD\
 IPOPT
 
 ### Installation of IPOT
-- You can download  ![IPOPT](https://www.coin-or.org/download/source/Ipopt/) 3.17.12 tgz file and extract it.
+- You can download  ![IPOPT](https://www.coin-or.org/download/source/Ipopt/) 3.12.7 tgz file and extract it.
 - Run the below command (install_ipopt.sh is found in this repo)
  ```
 ~/Desktop/lpopt/Ipopt-3.12.7$ sudo ./install_ipopt.sh Ipopt-3.12.7 
