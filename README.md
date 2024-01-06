@@ -1,6 +1,6 @@
 # MPC_Trajectory_Tracking
 
-This MPC project is inspired by UDACITY Self-Driving Course, and general installation guide of the below requriements are [here](https://github.com/udacity/CarND-MPC-Quizzes/blob/master/install_Ipopt_CppAD.md).
+This MPC project is inspired by Self-Driving Course, and general installation guide of the below requriements are [here](https://github.com/udacity/CarND-MPC-Quizzes/blob/master/install_Ipopt_CppAD.md).
 
 ## Requirements
 Opencv\
@@ -32,6 +32,29 @@ IPOPT
     
 ```
   ~/Desktop/lpopt/Ipopt-3.12.7$ sudo apt-get install cppad
+
+```
+## Related paths and linkers
+
+To run the code propely in Code::Blocks 20.03, you need additional linker and path:
+- Search Directories:
+```
+../../../../../usr/include/opencv4
+/home/yck/Desktop/Path Tracking Algorithms/CppRobotics/include
+/usr/local/include
+/usr/include
+../../../../../usr/include/cppad/ipopt
+
+```
+- Linker Settings (in order):
+```
+../../../../../usr/lib/x86_64-linux-gnu/libopencv_calib3d.so
+../../../../../usr/lib/x86_64-linux-gnu/libopencv_features2d.so
+../../../../../usr/lib/x86_64-linux-gnu/libopencv_flann.so
+../../../../../usr/lib/x86_64-linux-gnu/libopencv_imgproc.so
+../../../../../usr/lib/x86_64-linux-gnu/libopencv_core.so
+../../../../../usr/lib/x86_64-linux-gnu/libopencv_highgui.so
+../../../../../usr/local/lib/libipopt.so
 
 ```
 
