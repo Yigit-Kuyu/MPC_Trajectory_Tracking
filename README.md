@@ -9,7 +9,7 @@ CppAD\
 IPOPT
 
 ### Installation of IPOT
-- You can download  ![IPOPT](https://www.coin-or.org/download/source/Ipopt/) 3.12.7 tgz file and extract it.
+- You can download [IPOPT](https://www.coin-or.org/download/source/Ipopt/) 3.12.7 tgz file and extract it.
 - Run the below command (install_ipopt.sh is found in this repo)
  ```
 ~/Desktop/lpopt/Ipopt-3.12.7$ sudo ./install_ipopt.sh Ipopt-3.12.7 
@@ -39,22 +39,21 @@ IPOPT
 To run the code propely in Code::Blocks 20.03, you need additional linker and path:
 - Search Directories:
 ```
-../../../../../usr/include/opencv4
-/home/yck/Desktop/Path Tracking Algorithms/CppRobotics/include
+/usr/include/opencv4
 /usr/local/include
 /usr/include
-../../../../../usr/include/cppad/ipopt
+/usr/include/cppad/ipopt
 
 ```
 - Linker Settings (in order):
 ```
-../../../../../usr/lib/x86_64-linux-gnu/libopencv_calib3d.so
-../../../../../usr/lib/x86_64-linux-gnu/libopencv_features2d.so
-../../../../../usr/lib/x86_64-linux-gnu/libopencv_flann.so
-../../../../../usr/lib/x86_64-linux-gnu/libopencv_imgproc.so
-../../../../../usr/lib/x86_64-linux-gnu/libopencv_core.so
-../../../../../usr/lib/x86_64-linux-gnu/libopencv_highgui.so
-../../../../../usr/local/lib/libipopt.so
+/usr/lib/x86_64-linux-gnu/libopencv_calib3d.so
+/usr/lib/x86_64-linux-gnu/libopencv_features2d.so
+/usr/lib/x86_64-linux-gnu/libopencv_flann.so
+/usr/lib/x86_64-linux-gnu/libopencv_imgproc.so
+/usr/lib/x86_64-linux-gnu/libopencv_core.so
+/usr/lib/x86_64-linux-gnu/libopencv_highgui.so
+/usr/local/lib/libipopt.so
 
 ```
 
