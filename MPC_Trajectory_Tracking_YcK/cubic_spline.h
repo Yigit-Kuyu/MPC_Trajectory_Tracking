@@ -44,31 +44,32 @@ public:
   Vec_f d;
 
   Spline(){};
-  // d_i * (x-x_i)^3 + c_i * (x-x_i)^2 + b_i * (x-x_i) + a_i
+  // d_i * (x-x_i)^3 + c_i * (x-x_i)^2 + b_i * (x-x_i) + a_i --> cubic spline function
   Spline(Vec_f x_, Vec_f y_):x(x_), y(y_), nx(x_.size()), h(vec_diff(x_)), a(y_){
-    Eigen::MatrixXf A = calc_A();
-    Eigen::VectorXf B = calc_B();
-    Eigen::VectorXf c_eigen = A.colPivHouseholderQr().solve(B);
+    Eigen::MatrixXf A = calc_A(); // compute cubic line coef A
+    Eigen::VectorXf B = calc_B(); // compute cubic line coef B
+    Eigen::VectorXf c_eigen = A.colPivHouseholderQr().solve(B); // Compute cubic line coef B obtained by solving a system of linear equation Ax=B,
+                                                               //  where A and B are calculated above, and x is the vector of C coefficients.
     float * c_pointer = c_eigen.data();
     //Eigen::Map<Eigen::VectorXf>(c, c_eigen.rows(), 1) = c_eigen;
-    c.assign(c_pointer, c_pointer+c_eigen.rows());
+    c.assign(c_pointer, c_pointer+c_eigen.rows()); // c[0] = c_pointer[0], c[1] = c_pointer[1]...c_eigen.rows() - 1
 
     for(int i=0; i<nx-1; i++){
-      d.push_back((c[i+1]-c[i])/(3.0*h[i]));
-      b.push_back((a[i+1] - a[i])/h[i] - h[i] * (c[i+1] + 2*c[i])/3.0);
+      d.push_back((c[i+1]-c[i])/(3.0*h[i])); // calculate coefficient D
+      b.push_back((a[i+1] - a[i])/h[i] - h[i] * (c[i+1] + 2*c[i])/3.0); // calculate coefficient B
     }
   };
 
-  float calc(float t){
-    if(t<x.front() || t>x.back()){
+  float calc(float t){ // evaluate interpolated values of the cubic spline at a specific position t along x axis
+    if(t<x.front() || t>x.back()){ //  checks if the provided position t is outside the range of the x-axis
       throw std::invalid_argument( "received value out of the pre-defined range" );
     }
     int seg_id = bisect(t, 0, nx);
     float dx = t - x[seg_id];
-    return a[seg_id] + b[seg_id] * dx + c[seg_id] * dx * dx + d[seg_id] * dx * dx * dx;
+    return a[seg_id] + b[seg_id] * dx + c[seg_id] * dx * dx + d[seg_id] * dx * dx * dx; //  evaluate the interpolated value at a specific position t along the x-axis.
   };
 
-  float calc_d(float t){
+  float calc_d(float t){  // evaluate first derivatives
     if(t<x.front() || t>x.back()){
       throw std::invalid_argument( "received value out of the pre-defined range" );
     }
@@ -77,7 +78,7 @@ public:
     return b[seg_id]  + 2 * c[seg_id] * dx + 3 * d[seg_id] * dx * dx;
   }
 
-  float calc_dd(float t){
+  float calc_dd(float t){ // evaluate second derivatives
     if(t<x.front() || t>x.back()){
       throw std::invalid_argument( "received value out of the pre-defined range" );
     }
@@ -130,11 +131,11 @@ public:
 
   Spline2D(Vec_f x, Vec_f y){
     s = calc_s(x, y);
-    sx = Spline(s, x);
-    sy = Spline(s, y);
+    sx = Spline(s, x); // To compute a,b,c, d of the cubic spline equation for a given set of input points along x axis
+    sy = Spline(s, y); //  To compute a,b,c, d of the cubic spline equation for a given set of input points along y axis
   };
 
-  Poi_f calc_postion(float s_t){
+  Poi_f calc_position(float s_t){
     float x = sx.calc(s_t);
     float y = sy.calc(s_t);
     return {{x, y}};
