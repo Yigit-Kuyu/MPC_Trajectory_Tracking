@@ -13,6 +13,9 @@
 #include"motion_model.h"
 #include"Type_Alias.h"
 
+
+// Define değişecek
+
 #define NX 4
 #define T 6
 
@@ -477,20 +480,22 @@ int main(){
         std::cout << "Cumulative Arc Length from point "<< i << " to point " << (i+1) << ": " << e << std::endl; // cumulative arc lengths represent the total distance traveled along a trajectory from the starting point to each specific point.
         ++i;
         }
-
-  Vec_f r_x; // Vec_f=std::vector<float>
-  Vec_f r_y;
-  Vec_f ryaw;
-  Vec_f rcurvature;
-  Vec_f rs;
-  for(float i=0; i<csp_obj.s.back(); i+=1.0){
-    std::array<float, 2> point_ = csp_obj.calc_postion(i);
+  // Vec_f=std::vector<float>
+  Vec_f r_x{}; // x-coordinate
+  Vec_f r_y{}; //  y-coordinate
+  Vec_f ryaw{}; // yaw (heading angle)
+  Vec_f rcurvature{}; // curvature
+  Vec_f rs{};
+  //for(float i=0; i<csp_obj.s.back(); i+=1.0){
+  for(std::size_t i{0}; i<csp_obj.s.back(); ++i) {
+    std::array<float, 2> point_ = csp_obj.calc_position(static_cast<float>(i));
     r_x.push_back(point_[0]);
     r_y.push_back(point_[1]);
-    ryaw.push_back(csp_obj.calc_yaw(i));
-    rcurvature.push_back(csp_obj.calc_curvature(i));
-    rs.push_back(i);
+    ryaw.push_back(csp_obj.calc_yaw(static_cast<float>(i)));
+    rcurvature.push_back(csp_obj.calc_curvature(static_cast<float>(i)));
+    rs.push_back(static_cast<float>(i));
   }
+  std::cout<< "r_x back: " << r_x.back() << "r_x front: " << r_x.front() << std::endl;
 
   float target_speed = 10.0 / 3.6;
   Vec_f speed_profile = calc_speed_profile(r_x, r_y, ryaw, target_speed);
