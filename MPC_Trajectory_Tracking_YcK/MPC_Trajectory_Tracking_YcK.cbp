@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="MPC_Trajectory_Tracking_YcK" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/MPC_Trajectory_Tracking_YcK" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+					<Add directory="/usr/include/opencv4" />
+					<Add directory="/usr/local/include" />
+					<Add directory="/usr/include" />
+					<Add directory="/usr/include/cppad/ipopt" />
+				</Compiler>
+				<Linker>
+					<Add library="/usr/lib/x86_64-linux-gnu/libopencv_calib3d.so" />
+					<Add library="/usr/lib/x86_64-linux-gnu/libopencv_features2d.so" />
+					<Add library="/usr/lib/x86_64-linux-gnu/libopencv_flann.so" />
+					<Add library="/usr/lib/x86_64-linux-gnu/libopencv_imgproc.so" />
+					<Add library="/usr/lib/x86_64-linux-gnu/libopencv_core.so" />
+					<Add library="/usr/lib/x86_64-linux-gnu/libopencv_highgui.so" />
+					<Add library="/usr/local/lib/libipopt.so" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/MPC_Trajectory_Tracking_YcK" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+		</Compiler>
+		<Unit filename="MPC_main.cpp" />
+		<Unit filename="Type_Alias.h" />
+		<Unit filename="cubic_spline.h" />
+		<Unit filename="motion_model.h" />
+		<Extensions />
+	</Project>
+</CodeBlocks_project_file>
