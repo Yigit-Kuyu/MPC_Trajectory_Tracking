@@ -473,6 +473,22 @@ int main(){
     for (auto& e: wy)
         std::cout << e << std::endl;
 
+  /*
+  csp_obj.sx: Spline class--> Vec_f x=s,   Vec_f y=wx
+  csp_obj.sy: Spline class  --> Vec_f x=s  Vec_f y=wy
+  csp_obj.s:  Vec_f  vector:  //  Calculate cumulative arc lengths
+
+  Spline:
+
+  Vec_f x;
+  Vec_f y;
+  int nx;  // length of vector x
+  Vec_f h;  // vector difference between n and n-1
+  Vec_f a;  // cubic spline function coef
+  Vec_f b;  // cubic spline function coef
+  Vec_f c;  // cubic spline function coef
+  Vec_f d;  // cubic spline function coef
+  */
 
   Spline2D csp_obj(wx, wy); // cubic_spline.h
   int i{0};
@@ -488,14 +504,14 @@ int main(){
   Vec_f rs{};
   //for(float i=0; i<csp_obj.s.back(); i+=1.0){
   for(std::size_t i{0}; i<csp_obj.s.back(); ++i) {
-    std::array<float, 2> point_ = csp_obj.calc_position(static_cast<float>(i));
+    std::array<float, 2> point_ = csp_obj.calc_position(static_cast<float>(i)); // evaluate the interpolated value at a specific position t along the x-axis.
     r_x.push_back(point_[0]);
     r_y.push_back(point_[1]);
     ryaw.push_back(csp_obj.calc_yaw(static_cast<float>(i)));
     rcurvature.push_back(csp_obj.calc_curvature(static_cast<float>(i)));
     rs.push_back(static_cast<float>(i));
   }
-  std::cout<< "r_x back: " << r_x.back() << "r_x front: " << r_x.front() << std::endl;
+  std::cout<< "r_x back last element in vector: " << r_x.back() << "r_x front first element in vector: " << r_x.front() << std::endl;
 
   float target_speed = 10.0 / 3.6;
   Vec_f speed_profile = calc_speed_profile(r_x, r_y, ryaw, target_speed);

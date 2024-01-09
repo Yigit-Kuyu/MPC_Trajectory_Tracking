@@ -45,7 +45,8 @@ public:
 
   Spline(){};
   // d_i * (x-x_i)^3 + c_i * (x-x_i)^2 + b_i * (x-x_i) + a_i --> cubic spline function
-  Spline(Vec_f x_, Vec_f y_):x(x_), y(y_), nx(x_.size()), h(vec_diff(x_)), a(y_){
+  Spline(Vec_f x_, Vec_f y_):x{x_}, y{y_}, nx{x_.size()}, h{vec_diff(x_)}, a{y_}
+  {
     Eigen::MatrixXf A = calc_A(); // compute cubic line coef A
     Eigen::VectorXf B = calc_B(); // compute cubic line coef B
     Eigen::VectorXf c_eigen = A.colPivHouseholderQr().solve(B); // Compute cubic line coef B obtained by solving a system of linear equation Ax=B,
@@ -64,7 +65,7 @@ public:
     if(t<x.front() || t>x.back()){ //  checks if the provided position t is outside the range of the x-axis
       throw std::invalid_argument( "received value out of the pre-defined range" );
     }
-    int seg_id = bisect(t, 0, nx);
+    int seg_id = bisect(t, 0, nx); // binary search, (t, start, end) // for x, t=1, nx=7, dx=1, seg_id=0
     float dx = t - x[seg_id];
     return a[seg_id] + b[seg_id] * dx + c[seg_id] * dx * dx + d[seg_id] * dx * dx * dx; //  evaluate the interpolated value at a specific position t along the x-axis.
   };
@@ -130,9 +131,10 @@ public:
   Vec_f s;
 
   Spline2D(Vec_f x, Vec_f y){
-    s = calc_s(x, y);
-    sx = Spline(s, x); // To compute a,b,c, d of the cubic spline equation for a given set of input points along x axis
-    sy = Spline(s, y); //  To compute a,b,c, d of the cubic spline equation for a given set of input points along y axis
+    s = calc_s(x, y); // //  Calculate cumulative arc lengths
+    // For sx, x=s, y=x,   For sy, x=s, y=y, see. the constructor; Spline(Vec_f x_, Vec_f y_) function
+    sx = Spline(s, x); // To compute a,b,c, d of the cubic spline equation for a given set of input points along x axis referencing to s
+    sy = Spline(s, y); //  To compute a,b,c, d of the cubic spline equation for a given set of input points along y axis referencing to s
   };
 
   Poi_f calc_position(float s_t){
