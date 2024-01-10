@@ -61,13 +61,13 @@ public:
     }
   };
 
-  float calc(float t){ // evaluate interpolated values of the cubic spline at a specific position t along x axis
-    if(t<x.front() || t>x.back()){ //  checks if the provided position t is outside the range of the x-axis
+  float calc(float t){ // evaluate interpolated values of the cubic spline at a specific position t along s (s=calculate cumulative arc lengths)
+    if(t<x.front() || t>x.back()){ //  checks if the provided position t is outside the range of s (s=calculate cumulative arc lengths)
       throw std::invalid_argument( "received value out of the pre-defined range" );
     }
-    int seg_id = bisect(t, 0, nx); // binary search, (t, start, end) // for x, t=1, nx=7, dx=1, seg_id=0
+    int seg_id = bisect(t, 0, nx); // binary search, (t, start, end) // for x, t=1, nx=7, dx=1, seg_id=0 (seg_id is the index of the corresponding t along the cumulative arc length s)
     float dx = t - x[seg_id];
-    return a[seg_id] + b[seg_id] * dx + c[seg_id] * dx * dx + d[seg_id] * dx * dx * dx; //  evaluate the interpolated value at a specific position t along the x-axis.
+    return a[seg_id] + b[seg_id] * dx + c[seg_id] * dx * dx + d[seg_id] * dx * dx * dx; //  evaluate the interpolated value at a specific position t along the x-axis which is s (s=calculate cumulative arc lengths)
   };
 
   float calc_d(float t){  // evaluate first derivatives
@@ -132,28 +132,28 @@ public:
 
   Spline2D(Vec_f x, Vec_f y){
     s = calc_s(x, y); // //  Calculate cumulative arc lengths
-    // For sx, x=s, y=x,   For sy, x=s, y=y, see. the constructor; Spline(Vec_f x_, Vec_f y_) function
-    sx = Spline(s, x); // To compute a,b,c, d of the cubic spline equation for a given set of input points along x axis referencing to s
-    sy = Spline(s, y); //  To compute a,b,c, d of the cubic spline equation for a given set of input points along y axis referencing to s
+    // For sx, x=s, y=wx,   For sy, x=s, y=wy, see. the constructor; Spline(Vec_f x_, Vec_f y_) function
+    sx = Spline(s, x); // To compute a,b,c, d of the cubic spline equation for a given set of input points along s
+    sy = Spline(s, y); //  To compute a,b,c, d of the cubic spline equation for a given set of input points along s
   };
 
   Poi_f calc_position(float s_t){
-    float x = sx.calc(s_t);
-    float y = sy.calc(s_t);
-    return {{x, y}};
+    float x = sx.calc(s_t); // For Spline sx class, x=s (Calculate cumulative arc lengths), y=wx --> evaluate the interpolated value at a specific position st
+    float y = sy.calc(s_t); // // For Spline sy class, x=s (Calculate cumulative arc lengths), y=wy --> --> evaluate the interpolated value at a specific position st
+    return {{x, y}}; // interpolated values for wx and wy at specific position st
   };
 
   float calc_curvature(float s_t){
-    float dx = sx.calc_d(s_t);
-    float ddx = sx.calc_dd(s_t);
+    float dx = sx.calc_d(s_t);  // First derivative for s_t
+    float ddx = sx.calc_dd(s_t); // Second derivative for s_t
     float dy = sy.calc_d(s_t);
     float ddy = sy.calc_dd(s_t);
     return (ddy * dx - ddx * dy)/(dx * dx + dy * dy);
   };
 
   float calc_yaw(float s_t){
-    float dx = sx.calc_d(s_t);
-    float dy = sy.calc_d(s_t);
+    float dx = sx.calc_d(s_t); // first derivative for given point s_t
+    float dy = sy.calc_d(s_t); // first derivative for given point s_t
     return std::atan2(dy, dx);
   };
 
