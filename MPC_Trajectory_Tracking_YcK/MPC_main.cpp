@@ -480,8 +480,8 @@ int main(){
 
   Spline:
 
-  Vec_f x;
-  Vec_f y;
+  Vec_f x;  // Calculate cumulative arc lengths
+  Vec_f y;  // Given vector x or y
   int nx;  // length of vector x
   Vec_f h;  // vector difference between n and n-1
   Vec_f a;  // cubic spline function coef
@@ -493,7 +493,7 @@ int main(){
   Spline2D csp_obj(wx, wy); // cubic_spline.h
   int i{0};
   for (auto& e: csp_obj.s) {
-        std::cout << "Cumulative Arc Length from point "<< i << " to point " << (i+1) << ": " << e << std::endl; // cumulative arc lengths represent the total distance traveled along a trajectory from the starting point to each specific point.
+        std::cout << "Cumulative Arc Length from point "<< "0" << " to point " << (i+1) << ": " << e << std::endl; // cumulative arc lengths represent the total distance traveled along a trajectory from the starting point to each specific point.
         ++i;
         }
   // Vec_f=std::vector<float>
@@ -503,12 +503,14 @@ int main(){
   Vec_f rcurvature{}; // curvature
   Vec_f rs{};
   //for(float i=0; i<csp_obj.s.back(); i+=1.0){
-  for(std::size_t i{0}; i<csp_obj.s.back(); ++i) {
-    std::array<float, 2> point_ = csp_obj.calc_position(static_cast<float>(i)); // evaluate the interpolated value at a specific position t along the x-axis.
-    r_x.push_back(point_[0]);
-    r_y.push_back(point_[1]);
-    ryaw.push_back(csp_obj.calc_yaw(static_cast<float>(i)));
-    rcurvature.push_back(csp_obj.calc_curvature(static_cast<float>(i)));
+  for(std::size_t i{0}; i<csp_obj.s.back(); ++i) { // Iterates through the calculated arc lengths (csp_obj.s) of the entire trajectory using index i, csp_obj.s.back()=389.44
+    std::array<float, 2> point_ = csp_obj.calc_position(static_cast<float>(i)); // evaluate the interpolated value at a specific position t along s (Vec_f s)
+    r_x.push_back(point_[0]); // interpolated position x
+    r_y.push_back(point_[1]); // interpolated position y
+    float CalculatedYaw=csp_obj.calc_yaw(static_cast<float>(i));
+    ryaw.push_back(CalculatedYaw);
+    float CalculatedCurvature=csp_obj.calc_curvature(static_cast<float>(i));
+    rcurvature.push_back(CalculatedCurvature);
     rs.push_back(static_cast<float>(i));
   }
   std::cout<< "r_x back last element in vector: " << r_x.back() << "r_x front first element in vector: " << r_x.front() << std::endl;
