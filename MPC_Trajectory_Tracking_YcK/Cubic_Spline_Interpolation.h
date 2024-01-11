@@ -1,5 +1,5 @@
-#ifndef _CUBIC_SPLINE_H
-#define _CUBIC_SPLINE_H
+#ifndef CUBIC_SPLINE_INTERPOLATION_H
+#define CUBIC_SPLINE_INTERPOLATION_H
 
 #include<iostream>
 #include<vector>

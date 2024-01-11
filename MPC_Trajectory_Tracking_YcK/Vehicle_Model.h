@@ -1,5 +1,5 @@
-#ifndef _MOTION_MODEL_H
-#define _MOTION_MODEL_H
+#ifndef VEHICLE_MODEL_H
+#define VEHICLE_MODEL_H
 
 #include<iostream>
 #include<vector>
@@ -69,13 +69,13 @@ float interp_refer(std::vector<float> para, float x){
 }
 
 
-class MotionModel{
+class VehicleModel{
 public:
   const float base_l;
   const float ds;
   State state;
 
-  MotionModel(float base_l_, float ds_, State state_):
+  VehicleModel(float base_l_, float ds_, State state_):
     base_l(base_l_), ds(ds_), state(state_){};
   void update(float v_, float delta, float dt);
   State update(State state_, float delta, float dt);
@@ -84,7 +84,7 @@ public:
 
 };
 
-void MotionModel::update(float v_, float delta, float dt){
+void VehicleModel::update(float v_, float delta, float dt){
   state.v = v_;
   state.x = state.x + state.v * std::cos(state.yaw) * dt;
   state.y = state.y + state.v * std::sin(state.yaw) * dt;
@@ -92,7 +92,7 @@ void MotionModel::update(float v_, float delta, float dt){
   state.yaw = YAW_P2P(state.yaw);
 };
 
-State MotionModel::update(State state_, float delta, float dt){
+State VehicleModel::update(State state_, float delta, float dt){
   state_.x = state_.x + state_.v * std::cos(state_.yaw) * dt;
   state_.y = state_.y + state_.v * std::sin(state_.yaw) * dt;
   state_.yaw = state_.yaw + state_.v / base_l * std::tan(delta) * dt;
@@ -100,7 +100,7 @@ State MotionModel::update(State state_, float delta, float dt){
   return state_;
 };
 
-Traj MotionModel::generate_trajectory(Parameter p){
+Traj VehicleModel::generate_trajectory(Parameter p){
   float n =  p.distance / ds;
   float horizon = p.distance / state.v;
 
@@ -123,7 +123,7 @@ Traj MotionModel::generate_trajectory(Parameter p){
   return output;
 }
 
-TrajState MotionModel::generate_last_state(Parameter p){
+TrajState VehicleModel::generate_last_state(Parameter p){
   float n = p.distance / ds;
   float horizon = p.distance / state.v;
 
