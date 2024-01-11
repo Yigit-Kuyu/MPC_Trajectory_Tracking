@@ -9,8 +9,8 @@
 #include<eigen3/Eigen/Eigen>
 #include<cppad/cppad.hpp>
 #include<cppad/ipopt/solve.hpp>
-#include"cubic_spline.h"
-#include"motion_model.h"
+#include"Cubic_Spline_Interpolation.h"
+#include"Vehicle_Model.h"
 #include"Type_Alias.h"
 
 
@@ -160,21 +160,24 @@ ck, Vec_f sp, float dl, int& target_ind, Eigen_ref& xref){  // cx, cy: interpola
   float travel = 0.0;
 
   // PREDICTED HORIZON
-  // T=6, it determines the number of columns in the xref matrix, representing the prediction horizon.
+  // T=6, it determines the number of columns in the xref matrix, representing the prediction horizon. This means the MPC is planning the vehicle's trajectory over the next 6 time steps into the future.
   // a prediction horizon is used to plan the vehicle's trajectory over a certain number of time steps into the future.
   for(int i=0; i<T; i++){ // DT: time sample, dl: res
-    travel += std::abs(state.v) * DT; // Velocity in current state, DT=0.2, traveled distance (travel) is established based on the assumption that
+    travel += std::abs(state.v) * DT; // state.v: velocity in current state, DT=0.2, traveled distance (travel) is established based on the assumption that
                                      //  the vehicle moves a certain distance per time step (DT) at its current velocity (state.v).
-    int dind = (int)std::round(travel/dl); // dl=1, represents how many discrete indices forward the vehicle is expected to move.
+
+    // dl determines how much physical distance each index corresponds to.
+    // If dl = 1, it implies that each index in the trajectory corresponds to a distance of 1 unit in the physical world (e.g., 1 meter).
+    int discrete_distance_indx = (int)std::round(travel/dl); // dl=1, represents how many discrete indices forward the vehicle is expected to move.
     // int dind = i;
 
-    std::cout << "future index: dind: " << dind << " current index: " << i << std::endl;
+    std::cout << "future index: " << discrete_distance_indx << " current index: " << i << std::endl;
     // Updates the predicted reference trajectory based on the expected future position of the vehicle.
-    if ((ind+dind)<ncourse){ // Access future points in the trajectory (cx, cy, cyaw, sp).
-      xref(0, i) = cx[ind + dind];
-      xref(1, i) = cy[ind + dind];
-      xref(2, i) = cyaw[ind + dind];
-      xref(3, i) = sp[ind + dind];
+    if ((ind+discrete_distance_indx)<ncourse){ // Access future points in the trajectory (cx, cy, cyaw, sp).
+      xref(0, i) = cx[ind + discrete_distance_indx];
+      xref(1, i) = cy[ind + discrete_distance_indx];
+      xref(2, i) = cyaw[ind + discrete_distance_indx];
+      xref(3, i) = sp[ind + discrete_distance_indx];
       // dref(0, i) = 0.0;
     }else{
       xref(0, i) = cx[ncourse - 1];
@@ -186,7 +189,7 @@ ck, Vec_f sp, float dl, int& target_ind, Eigen_ref& xref){  // cx, cy: interpola
     std::cout << std::endl;
   }
 
-  target_ind = ind;
+  target_ind = ind; // Update the target_ind variable with the nearest index for the next iteration.
   std::cout << std::endl;
 };
 
@@ -384,7 +387,7 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
   int iter_count = 0;
 
   int target_ind = 0;
-  calc_nearest_index(state, cx, cy, cyaw, target_ind);
+  //calc_nearest_index(state, cx, cy, cyaw, target_ind); // nearest point index from the current state to the interpolated points
 
   smooth_yaw(cyaw);
 
@@ -399,7 +402,8 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
   Eigen_ref xref;
 
   while (MAX_TIME >= iter_count){
-    calc_ref_trajectory(state, cx, cy, cyaw, ck, speed_profile, 1.0, target_ind, xref);
+    // Below function updates the columns of 'xref' with the future states, considering the discrete index shift 'discrete_distance_indx'
+    calc_ref_trajectory(state, cx, cy, cyaw, ck, speed_profile, 1.0, target_ind, xref); // responsible for predicting the reference trajectory for the vehicle based on its current state and the available trajectory information.
 
     Vec_f output = mpc_solve(state, xref);
 

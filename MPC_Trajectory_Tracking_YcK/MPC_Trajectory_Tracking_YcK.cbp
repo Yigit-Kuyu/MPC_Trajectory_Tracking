@@ -45,10 +45,10 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="Cubic_Spline_Interpolation.h" />
 		<Unit filename="MPC_main.cpp" />
 		<Unit filename="Type_Alias.h" />
-		<Unit filename="cubic_spline.h" />
-		<Unit filename="motion_model.h" />
+		<Unit filename="Vehicle_Model.h" />
 		<Extensions />
 	</Project>
 </CodeBlocks_project_file>
