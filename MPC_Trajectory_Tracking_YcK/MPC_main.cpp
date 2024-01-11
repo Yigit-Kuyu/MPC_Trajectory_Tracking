@@ -47,7 +47,7 @@ using CppAD::AD;
 using namespace vector_types;
 using namespace parameters;
 using namespace vect_difference;
-using M_XREF=Eigen::Matrix<float, NX, T>;
+using Eigen_ref=Eigen::Matrix<float, NX, T>;
 
 int x_start = 0;
 int y_start = x_start + T;
@@ -83,32 +83,38 @@ Vec_f calc_speed_profile(Vec_f rx, Vec_f ry, Vec_f ryaw, float target_speed){
 
   float direction = 1.0;
   for(unsigned int i=0; i < ryaw.size()-1; i++){
-    float dx = rx[i+1] - rx[i];
-    float dy = ry[i+1] - ry[i];
-    float move_direction = std::atan2(dy, dx);
+    float dx = rx[i+1] - rx[i]; // Calculate the change in x-coordinate between the current and next trajectory interpolated points
+    float dy = ry[i+1] - ry[i]; // Calculate the change in y-coordinate between the current and next trajectory interpolated points
+    float move_direction = std::atan2(dy, dx); // Calculate the angle in rads (move_direction) between the current and next points. This angle represents the direction of movement between the points.
 
-    if (dx != 0.0 && dy != 0.0){
-      float dangle = std::abs(YAW_P2P(move_direction - ryaw[i]));
-      if (dangle >= M_PI/4.0) direction = -1.0;
+    if (dx != 0.0 && dy != 0.0){ // If both dx and dy are non-zero, calculate the absolute change in between  move_direction and the yaw (rotation)
+      float dif_angle = std::abs(YAW_P2P(move_direction - ryaw[i])); // periodic normalization function,  ensures that the angle is within the range [-pi, pi],
+      if (dif_angle >= M_PI/4.0) direction = -1.0; // if the angle difference is greater than or equal to pi/4 (45 degrees), set the direction to -1 (reverse direction); otherwise, set it to 1 (forward).
       else direction = 1.0;
+    /*
+    Setting the direction to -1 essentially signals that a significant change in direction has been detected,
+    and it implies that the vehicle should move in the opposite or reverse direction to better align with the desired trajectory.
+
+    */
+
     }
 
-    if (direction != 1.0) speed_profile[i] = -1 * target_speed;
-    else speed_profile[i] = target_speed;
+    // This negative speed can be interpreted as a deceleration or slowdown to account for the change in direction.
+    if (direction != 1.0) speed_profile[i] = -1 * target_speed; // Based on the determined direction, if the direction is not 1, it sets the speed to the negative of the target_speed (indicating reverse movement).
 
   }
-  speed_profile[-1] = 0.0;
-
+  speed_profile[-1] = 0.0; // Sets the last element of the speed_profile vector to 0.0.
+                          //  It ensures that the vehicle doesn't continue with any residual speed beyond the intended trajectory.
   return speed_profile;
 };
 
-int calc_nearest_index(State state, Vec_f cx, Vec_f cy, Vec_f cyaw, int pind){
-  float mind = std::numeric_limits<float>::max();
+int calc_nearest_index(State state, Vec_f cx, Vec_f cy, Vec_f cyaw, int target_indx){
+  float mind = std::numeric_limits<float>::max(); // assign very high value for comparison in if condition (d_e<mind)
   float ind = 0;
-  for(unsigned int i=pind; i<pind+N_IND_SEARCH; i++){
-    float idx = cx[i] - state.x;
-    float idy = cy[i] - state.y;
-    float d_e = idx*idx + idy*idy;
+  for(unsigned int i=target_indx; i<target_indx+N_IND_SEARCH; i++){
+    float idx = cx[i] - state.x;        // cx: interpolated x values, state.x=cx[0]
+    float idy = cy[i] - state.y;       //  cy: interpolated y values, state.y=cy[0]
+    float d_e = idx*idx + idy*idy;    //  Euclidean distance between the vehicle's current state and the interpolated points
 
     if (d_e<mind){
       mind = d_e;
@@ -121,19 +127,22 @@ int calc_nearest_index(State state, Vec_f cx, Vec_f cy, Vec_f cyaw, int pind){
   // float angle = YAW_P2P(cyaw[ind] - std::atan2(dyl, dxl));
   // if (angle < 0) mind = mind * -1;
 
-  return ind;
+  return ind; // nearest point index from the current state to the interpolated points
 };
 
 
 void calc_ref_trajectory(State state, Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f
-ck, Vec_f sp, float dl, int& target_ind, M_XREF& xref){
+ck, Vec_f sp, float dl, int& target_ind, Eigen_ref& xref){  // cx, cy: interpolated x, y values,
+// ck: calculated curvature, sp: speed profile, dl=1, xref=Eigen::Matrix<float, NX, T>: NX=4 (row number), T=6 (column number)
+// target_ind=0 (initial value)
 
-  xref = M_XREF::Zero();
-  // dref = Eigen::Matrix<float, 1, T>::Zero();
+  // Eigen_ref=Eigen::Matrix<float, NX, T>
+  xref = Eigen_ref::Zero(); // predicted reference trajectory
+
 
   int ncourse = cx.size();
 
-  int ind = calc_nearest_index(state, cx, cy, cyaw, target_ind);
+  int ind = calc_nearest_index(state, cx, cy, cyaw, target_ind); // nearest point index from the current state to the interpolated points
   if (target_ind >= ind) ind = target_ind;
 
   xref(0, 0) = cx[ind];
@@ -141,15 +150,27 @@ ck, Vec_f sp, float dl, int& target_ind, M_XREF& xref){
   xref(2, 0) = cyaw[ind];
   xref(3, 0) = sp[ind];
 
+  for (int i = 0; i < xref.rows(); ++i) {
+    for (int j = 0; j < xref.cols(); ++j) {
+        std::cout << xref(i, j) << " ";
+    }
+    std::cout << std::endl;
+}
+
   float travel = 0.0;
 
-  for(int i=0; i<T; i++){
-    travel += std::abs(state.v) * DT;
-    int dind = (int)std::round(travel/dl);
+  // PREDICTED HORIZON
+  // T=6, it determines the number of columns in the xref matrix, representing the prediction horizon.
+  // a prediction horizon is used to plan the vehicle's trajectory over a certain number of time steps into the future.
+  for(int i=0; i<T; i++){ // DT: time sample, dl: res
+    travel += std::abs(state.v) * DT; // Velocity in current state, DT=0.2, traveled distance (travel) is established based on the assumption that
+                                     //  the vehicle moves a certain distance per time step (DT) at its current velocity (state.v).
+    int dind = (int)std::round(travel/dl); // dl=1, represents how many discrete indices forward the vehicle is expected to move.
     // int dind = i;
 
-
-    if ((ind+dind)<ncourse){
+    std::cout << "future index: dind: " << dind << " current index: " << i << std::endl;
+    // Updates the predicted reference trajectory based on the expected future position of the vehicle.
+    if ((ind+dind)<ncourse){ // Access future points in the trajectory (cx, cy, cyaw, sp).
       xref(0, i) = cx[ind + dind];
       xref(1, i) = cy[ind + dind];
       xref(2, i) = cyaw[ind + dind];
@@ -162,20 +183,22 @@ ck, Vec_f sp, float dl, int& target_ind, M_XREF& xref){
       xref(3, i) = sp[ncourse - 1];
       // dref(0, i) = 0.0;
     }
+    std::cout << std::endl;
   }
 
   target_ind = ind;
+  std::cout << std::endl;
 };
 
-void smooth_yaw(Vec_f& cyaw){
+void smooth_yaw(Vec_f& cyaw){ // smooth out sudden jumps or discontinuities in the yaw angles of the trajectory
   for(unsigned int i=0; i<cyaw.size()-1; i++){
     float dyaw = cyaw[i+1] - cyaw[i];
 
-    while (dyaw > M_PI/2.0){
+    while (dyaw > M_PI/2.0){ // Adjustments for large positive jumps in yaw within a specified range [-pi/2, pi/2]
       cyaw[i+1] -= M_PI*2.0;
       dyaw = cyaw[i+1] - cyaw[i];
     }
-    while (dyaw < -M_PI/2.0){
+    while (dyaw < -M_PI/2.0){ // Adjustments for large negative jumps in yaw within a specified range [-pi/2, pi/2]
       cyaw[i+1] += M_PI*2.0;
       dyaw = cyaw[i+1] - cyaw[i];
     }
@@ -186,9 +209,9 @@ void smooth_yaw(Vec_f& cyaw){
 class FG_EVAL{
 public:
   // Eigen::VectorXd coeeffs;
-  M_XREF traj_ref;
+  Eigen_ref traj_ref;
 
-  FG_EVAL(M_XREF traj_ref){
+  FG_EVAL(Eigen_ref traj_ref){
     this->traj_ref = traj_ref;
   }
 
@@ -250,7 +273,7 @@ public:
   }
 };
 
-Vec_f mpc_solve(State x0, M_XREF traj_ref){
+Vec_f mpc_solve(State x0, Eigen_ref traj_ref){
 
   typedef CPPAD_TESTVECTOR(double) Dvector;
   double x = x0.x;
@@ -344,7 +367,15 @@ Vec_f mpc_solve(State x0, M_XREF traj_ref){
 };
 
 void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profile, Poi_f goal){
-  State state(cx[0], cy[0], cyaw[0], speed_profile[0]);
+  State state(cx[0], cy[0], cyaw[0], speed_profile[0]); // State struct initializing, cx, cy: interpolated positions
+
+  /*
+
+  This logic is adjusting the initial yaw angle of the state to be within the range of [-pi, +pi].
+  If the initial yaw angle is greater than or equal to pi, it subtracts 2pi, until it falls within the range.
+  If the initial yaw angle is less than or equal to -pi, it adds 2pi until it falls within the range
+
+  */
 
   if ((state.yaw - cyaw[0]) >= M_PI) state.yaw -= M_PI * 2.0;
   else if ((state.yaw - cyaw[0]) <= -1.0*M_PI) state.yaw += M_PI * 2.0;
@@ -365,7 +396,7 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
   Vec_f x_h;
   Vec_f y_h;
 
-  M_XREF xref;
+  Eigen_ref xref;
 
   while (MAX_TIME >= iter_count){
     calc_ref_trajectory(state, cx, cy, cyaw, ck, speed_profile, 1.0, target_ind, xref);
@@ -497,19 +528,20 @@ int main(){
         ++i;
         }
   // Vec_f=std::vector<float>
-  Vec_f r_x{}; // x-coordinate
-  Vec_f r_y{}; //  y-coordinate
+  Vec_f r_x{}; // interpolated x-coordinate
+  Vec_f r_y{}; //  interpolated y-coordinate
   Vec_f ryaw{}; // yaw (heading angle)
   Vec_f rcurvature{}; // curvature
-  Vec_f rs{};
+  Vec_f rs{}; // given point
   //for(float i=0; i<csp_obj.s.back(); i+=1.0){
   for(std::size_t i{0}; i<csp_obj.s.back(); ++i) { // Iterates through the calculated arc lengths (csp_obj.s) of the entire trajectory using index i, csp_obj.s.back()=389.44
     std::array<float, 2> point_ = csp_obj.calc_position(static_cast<float>(i)); // evaluate the interpolated value at a specific position t along s (Vec_f s)
     r_x.push_back(point_[0]); // interpolated position x
     r_y.push_back(point_[1]); // interpolated position y
-    float CalculatedYaw=csp_obj.calc_yaw(static_cast<float>(i));
-    ryaw.push_back(CalculatedYaw);
-    float CalculatedCurvature=csp_obj.calc_curvature(static_cast<float>(i));
+    float CalculatedYaw=csp_obj.calc_yaw(static_cast<float>(i)); // CalculatedYaw is an angle, and it is typically expressed in radians.
+    ryaw.push_back(CalculatedYaw); // yaw (heading angle)
+    // Calculates the curvature of a trajectory at a specific position i along the path. Curvature is a measure of how much a curve deviates from being a straight line.
+    float CalculatedCurvature=csp_obj.calc_curvature(static_cast<float>(i)); //
     rcurvature.push_back(CalculatedCurvature);
     rs.push_back(static_cast<float>(i));
   }
