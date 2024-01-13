@@ -218,7 +218,7 @@ public:
     this->traj_ref = traj_ref;
   }
 
-  typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
+  typedef CPPAD_TESTVECTOR(AD<double>) ADvector; // <cppad/cppad.hpp>
 
   void operator()(ADvector& fg, const ADvector& vars){
     fg[0] = 0;
@@ -278,16 +278,20 @@ public:
 
 Vec_f mpc_solve(State x0, Eigen_ref traj_ref){
 
-  typedef CPPAD_TESTVECTOR(double) Dvector;
+  // The CppAD API allows one to use any SimpleVector class.
+  // The preprocessor symbol CPPAD_TESTVECTOR is template vector class which is used for correctness testing.
+
+  typedef CPPAD_TESTVECTOR(double) Dvector; //  CPPAD_TESTVECTOR template class to pass information to CppAD (<cppad/cppad.hpp>)
   double x = x0.x;
   double y = x0.y;
   double yaw = x0.yaw;
   double v = x0.v;
 
-  size_t n_vars = T * 4 + (T - 1) * 2;
-  size_t n_constraints = T * 4;
+  // prediction horizon has four states (x, y, yaw, v), thats why we multiplies 4
+  size_t n_vars = T * 4 + (T - 1) * 2; // T=6-->n_vars=34
+  size_t n_constraints = T * 4; // n_constraints=24
 
-  Dvector vars(n_vars);
+  Dvector vars(n_vars); // KALDIM-CHATGPT SORU !!!
   for (int i = 0; i < n_vars; i++){
     vars[i] = 0.0;
   }
