@@ -212,7 +212,7 @@ void smooth_yaw(Vec_f& cyaw){ // smooth out sudden jumps or discontinuities in t
 class FG_EVAL{
 public:
   // Eigen::VectorXd coeeffs;
-  Eigen_ref traj_ref;
+  Eigen_ref traj_ref; // Eigen_ref=Eigen::Matrix<float, NX, T>;
 
   FG_EVAL(Eigen_ref traj_ref){
     this->traj_ref = traj_ref;
@@ -278,6 +278,12 @@ public:
 
 Vec_f mpc_solve(State x0, Eigen_ref traj_ref){
 
+  /*
+    x0: The initial state of the vehicle, containing its position (x, y), orientation (yaw), and velocity (v).
+    traj_ref: A reference trajectory that the vehicle should follow.
+*/
+
+
   // The CppAD API allows one to use any SimpleVector class.
   // The preprocessor symbol CPPAD_TESTVECTOR is template vector class which is used for correctness testing.
 
@@ -287,11 +293,12 @@ Vec_f mpc_solve(State x0, Eigen_ref traj_ref){
   double yaw = x0.yaw;
   double v = x0.v;
 
-  // prediction horizon has four states (x, y, yaw, v), thats why we multiplies 4
+  // Control inputs, delta and acceleration, thats why (T - 1) * 2
+  // In each time step, over the prediction horizon (T) has four states (x, y, yaw, v), thats why we multiplies 4
   size_t n_vars = T * 4 + (T - 1) * 2; // T=6-->n_vars=34
   size_t n_constraints = T * 4; // n_constraints=24
 
-  Dvector vars(n_vars); // KALDIM-CHATGPT SORU !!!
+  Dvector vars(n_vars); // KALDIM!!!
   for (int i = 0; i < n_vars; i++){
     vars[i] = 0.0;
   }
@@ -307,7 +314,7 @@ Vec_f mpc_solve(State x0, Eigen_ref traj_ref){
 
   // Set all non-actuators upper and lowerlimits
   // to the max negative and positive values.
-  // NOTE there mush be both lower and upper bounds for all vars!!!!!
+  // NOTE there must be both lower and upper bounds for all vars!!!!!
   for (auto i = 0; i < n_vars; i++) {
     vars_lowerbound[i] = -10000000.0;
     vars_upperbound[i] = 10000000.0;
@@ -366,7 +373,7 @@ Vec_f mpc_solve(State x0, Eigen_ref traj_ref){
   bool ok = true;
   ok &= solution.status == CppAD::ipopt::solve_result<Dvector>::success;
 
-  Vec_f result;
+  Vec_f result; // Vec_f=std::vector<float>;
   for (auto i =0 ; i < n_vars; i++) {
     result.push_back((float)solution.x[i]);
   }
@@ -406,6 +413,7 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
   Eigen_ref xref;
 
   while (MAX_TIME >= iter_count){
+  //while (390 >= iter_count){
     // Below function updates the columns of 'xref' with the future states, considering the discrete index shift 'discrete_distance_indx'
     calc_ref_trajectory(state, cx, cy, cyaw, ck, speed_profile, 1.0, target_ind, xref); // responsible for predicting the reference trajectory for the vehicle based on its current state and the available trajectory information.
 
@@ -414,6 +422,7 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
     update(state, output[a_start], output[delta_start]);
 
     float steer = output[delta_start];
+
 
     float dx = state.x - goal[0];
     float dy = state.y - goal[1];
