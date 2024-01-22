@@ -150,12 +150,15 @@ ck, Vec_f sp, float dl, int& target_ind, Eigen_ref& xref){  // cx, cy: interpola
   xref(2, 0) = cyaw[ind];
   xref(3, 0) = sp[ind];
 
-  for (int i = 0; i < xref.rows(); ++i) {
+  /*
+  for (int i = 0; i < xref.rows(); ++i)
+  {
     for (int j = 0; j < xref.cols(); ++j) {
         std::cout << xref(i, j) << " ";
     }
     std::cout << std::endl;
-}
+  }
+  */
 
   float travel = 0.0;
 
@@ -171,7 +174,7 @@ ck, Vec_f sp, float dl, int& target_ind, Eigen_ref& xref){  // cx, cy: interpola
     int discrete_distance_indx = (int)std::round(travel/dl); // dl=1, represents how many discrete indices forward the vehicle is expected to move.
     // int dind = i;
 
-    std::cout << "future index: " << discrete_distance_indx << " current index: " << i << std::endl;
+    //std::cout << "future index: " << discrete_distance_indx << " current index: " << i << std::endl;
     // Updates the predicted reference trajectory based on the expected future position of the vehicle.
     if ((ind+discrete_distance_indx)<ncourse){ // Access future points in the trajectory (cx, cy, cyaw, sp).
       xref(0, i) = cx[ind + discrete_distance_indx];
@@ -278,7 +281,7 @@ public:
 
 Vec_f mpc_solve(State x0, Eigen_ref traj_ref){
 
-  /*
+/*
     x0: The initial state of the vehicle, containing its position (x, y), orientation (yaw), and velocity (v).
     traj_ref: A reference trajectory that the vehicle should follow.
 */
@@ -422,6 +425,13 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
     update(state, output[a_start], output[delta_start]);
 
     float steer = output[delta_start];
+    std::cout << "delta index: " <<delta_start << '\n';
+    std::cout << "steer: " <<steer << '\n';
+
+    float acceleration = output[a_start];
+    std::cout << "a index: " <<a_start << '\n';
+    std::cout << "acceleration: " <<acceleration  << '\n';
+
 
 
     float dx = state.x - goal[0];
@@ -539,11 +549,16 @@ int main(){
   */
 
   Spline2D csp_obj(wx, wy); // cubic_spline.h
+
+  /*
   int i{0};
   for (auto& e: csp_obj.s) {
         std::cout << "Cumulative Arc Length from point "<< "0" << " to point " << (i+1) << ": " << e << std::endl; // cumulative arc lengths represent the total distance traveled along a trajectory from the starting point to each specific point.
         ++i;
         }
+  */
+
+
   // Vec_f=std::vector<float>
   Vec_f r_x{}; // interpolated x-coordinate
   Vec_f r_y{}; //  interpolated y-coordinate
@@ -562,7 +577,8 @@ int main(){
     rcurvature.push_back(CalculatedCurvature);
     rs.push_back(static_cast<float>(i));
   }
-  std::cout<< "r_x back last element in vector: " << r_x.back() << "r_x front first element in vector: " << r_x.front() << std::endl;
+
+  //std::cout<< "r_x back last element in vector: " << r_x.back() << "r_x front first element in vector: " << r_x.front() << std::endl;
 
   float target_speed = 10.0 / 3.6;
   Vec_f speed_profile = calc_speed_profile(r_x, r_y, ryaw, target_speed);
