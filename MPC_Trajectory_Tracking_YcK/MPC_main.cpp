@@ -16,23 +16,23 @@
 
 // Define değişecek
 
-#define NX 4
-#define T 6
+#define NX 4 // State dimension (x, y, yaw (yaw angle), and velocity (v))
+#define T 6 // Prediction Horizon
 
-#define DT 0.2
-#define MAX_STEER 45.0/180*M_PI
-#define MAX_DSTEER  30.0/180*M_PI
+#define DT 0.2 // Time step
+#define MAX_STEER 45.0/180*M_PI // Maximum Steering Angle (rad)
+#define MAX_DSTEER  30.0/180*M_PI // Maximum Steering Rate (rad/sec)
 
-#define MAX_ITER 3
-#define DU_TH 0.1
+#define MAX_ITER 3 // Maximum Iterations for MPC Solver
+#define DU_TH 0.1 // Change Threshold for Control Inputs for Optimization
 
-#define N_IND_SEARCH 10
-#define MAX_TIME 5000
+#define N_IND_SEARCH 10 // Number of Index Search Steps
+#define MAX_TIME 5000 //  Maximum Simulation time in iterations
 
-#define WB 2.5
-#define MAX_SPEED   55.0/3.6
+#define WB 2.5 // Wheelbase
+#define MAX_SPEED   55.0/3.6 // Maximum Speed (m/s)
 #define MIN_SPEED  -20.0/3.6
-#define MAX_ACCEL 1.0
+#define MAX_ACCEL 1.0 // Maximum Acceleration
 
 
 #define LENGTH  4.5
@@ -91,10 +91,10 @@ Vec_f calc_speed_profile(Vec_f rx, Vec_f ry, Vec_f ryaw, float target_speed){
       float dif_angle = std::abs(YAW_P2P(move_direction - ryaw[i])); // periodic normalization function,  ensures that the angle is within the range [-pi, pi],
       if (dif_angle >= M_PI/4.0) direction = -1.0; // if the angle difference is greater than or equal to pi/4 (45 degrees), set the direction to -1 (reverse direction); otherwise, set it to 1 (forward).
       else direction = 1.0;
+
     /*
     Setting the direction to -1 essentially signals that a significant change in direction has been detected,
     and it implies that the vehicle should move in the opposite or reverse direction to better align with the desired trajectory.
-
     */
 
     }
@@ -103,8 +103,8 @@ Vec_f calc_speed_profile(Vec_f rx, Vec_f ry, Vec_f ryaw, float target_speed){
     if (direction != 1.0) speed_profile[i] = -1 * target_speed; // Based on the determined direction, if the direction is not 1, it sets the speed to the negative of the target_speed (indicating reverse movement).
 
   }
-  speed_profile[-1] = 0.0; // Sets the last element of the speed_profile vector to 0.0.
-                          //  It ensures that the vehicle doesn't continue with any residual speed beyond the intended trajectory.
+  speed_profile[-1] = 0.0;  // Sets the last element of the speed_profile vector to 0.0.
+                           //  It ensures that the vehicle doesn't continue with any residual speed beyond the intended trajectory.
   return speed_profile;
 };
 
@@ -379,6 +379,7 @@ Vec_f mpc_solve(State x0, Eigen_ref traj_ref){
   Vec_f result; // Vec_f=std::vector<float>;
   for (auto i =0 ; i < n_vars; i++) {
     result.push_back((float)solution.x[i]);
+    std::cout << i << " solution.x[i]: " << solution.x[i] << std::endl;
   }
   return result;
 };
@@ -413,7 +414,15 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
   Vec_f x_h;
   Vec_f y_h;
 
-  Eigen_ref xref;
+  Eigen_ref xref; // Eigen_ref=Eigen::Matrix<float, NX, T>
+
+  std::cout << "Initialization : "<<std::endl;
+  for (int i = 0; i < NX; ++i) {
+    for (int j = 0; j < T; ++j) {
+        std::cout << "xref(" << i << ", " << j << ") = " << xref(i, j) << "\t";
+    }
+    std::cout << std::endl;
+}
 
   while (MAX_TIME >= iter_count){
   //while (390 >= iter_count){
@@ -422,7 +431,29 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
 
     Vec_f output = mpc_solve(state, xref);
 
+    // State dimension (x, y, yaw (yaw angle), and velocity (v)) = 4
+    // Prediction Horizon = 6
+    // xref --> 4 satır, 6 sütun
+    std::cout << "After MPC solve(Reference trajectory updated): "<<std::endl;
+    for (int i = 0; i < xref.rows(); ++i) {
+    for (int j = 0; j < xref.cols(); ++j) {
+        std::cout << "xref(" << i << ", " << j << ") = " << xref(i, j) << "\t";
+    }
+    std::cout << std::endl;
+}
+
+
     update(state, output[a_start], output[delta_start]);
+
+
+    std::cout << "After update : "<<std::endl;
+    for (int i = 0; i < NX; ++i) {
+    for (int j = 0; j < T; ++j) {
+        std::cout << "xref(" << i << ", " << j << ") = " << xref(i, j) << "\t";
+    }
+    std::cout << std::endl;
+    }
+
 
     float steer = output[delta_start];
     std::cout << "delta index: " <<delta_start << '\n';
@@ -499,6 +530,13 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
       cv::Scalar(255,0,127),
       30);
 
+    for (int i = 0; i < NX; ++i) {
+    for (int j = 0; j < T; ++j) {
+        std::cout << "xref(" << i << ", " << j << ") = " << xref(i, j) << "\t";
+    }
+    std::cout << std::endl;
+    }
+
     for(unsigned int k=0; k<xref.cols(); k++){
       cv::drawMarker(
         bg,
@@ -506,7 +544,7 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
         cv::Scalar(0, 255, 255),
         cv::MARKER_CROSS,
         20, 3);
-    }
+    }  // xref(0, k) -->  x value in k. time in prediction horizon, xref(1, k) --> y value in k. time in prediction horizon
 
     // save image in build/bin/pngs
     // struct timeval tp;
@@ -524,12 +562,14 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
 int main(){
 
   Vec_f wx{0.0, 60.0, 125.0,  50.0,   75.0,  35.0,  -10.0}; //  vector wx that represents the x-coordinates of waypoints on a trajectory.
-  // Vec_f wy({0.0,  4.0,  -4.0,  4.0,  -4.0,   4.0,  0.0});
-  Vec_f wy{0.0,  0.0,  50.0,  65.0,   30.0,  50.0,  -20.0}; //  vector wy that represents the y-coordinates of waypoints on a trajectory.
+  Vec_f wy({0.0,  4.0,  -4.0,  4.0,  -4.0,   4.0,  0.0});
+  //Vec_f wy{0.0,  0.0,  50.0,  65.0,   30.0,  50.0,  -20.0}; //  vector wy that represents the y-coordinates of waypoints on a trajectory.
 
+  /*
   // range-based for-loop (1D array)
-    for (auto& e: wy)
+  for (auto& e: wy)
         std::cout << e << std::endl;
+  */
 
   /*
   csp_obj.sx: Spline class--> Vec_f x=s,   Vec_f y=wx
