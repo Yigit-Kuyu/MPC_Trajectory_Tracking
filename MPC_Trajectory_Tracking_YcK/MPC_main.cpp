@@ -14,38 +14,7 @@
 #include"Type_Alias.hpp"
 #include"Constant.hpp"
 
-/*
 
-// Define değişecek
-
-#define NX 4 // State dimension (x, y, yaw (yaw angle), and velocity (v))
-#define T 6 // Prediction Horizon
-
-#define DT 0.2 // Time step
-#define MAX_STEER 45.0/180*M_PI // Maximum Steering Angle (rad)
-#define MAX_DSTEER  30.0/180*M_PI // Maximum Steering Rate (rad/sec)
-
-#define MAX_ITER 3 // Maximum Iterations for MPC Solver
-#define DU_TH 0.1 // Change Threshold for Control Inputs for Optimization
-
-#define N_IND_SEARCH 10 // Number of Index Search Steps
-#define MAX_TIME 5000 //  Maximum Simulation time in iterations
-
-#define WB 2.5 // Wheelbase
-#define MAX_SPEED   55.0/3.6 // Maximum Speed (m/s)
-#define MIN_SPEED  -20.0/3.6
-#define MAX_ACCEL 1.0 // Maximum Acceleration
-
-
-#define LENGTH  4.5
-#define WIDTH 2.0
-#define BACKTOWHEEL 1.0
-#define WHEEL_LEN 0.3
-#define WHEEL_WIDTH 0.2
-#define TREAD 0.7
-#define WB 2.5
-
-*/
 
 using CppAD::AD;
 using namespace vector_types;
