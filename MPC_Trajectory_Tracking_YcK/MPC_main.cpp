@@ -9,10 +9,12 @@
 #include<eigen3/Eigen/Eigen>
 #include<cppad/cppad.hpp>
 #include<cppad/ipopt/solve.hpp>
-#include"Cubic_Spline_Interpolation.h"
-#include"Vehicle_Model.h"
-#include"Type_Alias.h"
+#include"Cubic_Spline_Interpolation.hpp"
+#include"Vehicle_Model.hpp"
+#include"Type_Alias.hpp"
+#include"Constant.hpp"
 
+/*
 
 // Define değişecek
 
@@ -43,19 +45,21 @@
 #define TREAD 0.7
 #define WB 2.5
 
+*/
+
 using CppAD::AD;
 using namespace vector_types;
 using namespace parameters;
 using namespace vect_difference;
-using Eigen_ref=Eigen::Matrix<float, NX, T>;
+using Eigen_ref=Eigen::Matrix<float, Constants::NX, Constants::T>;
 
 int x_start = 0;
-int y_start = x_start + T;
-int yaw_start = y_start + T;
-int v_start = yaw_start + T;
+int y_start = x_start + Constants::T;
+int yaw_start = y_start + Constants::T;
+int v_start = yaw_start + Constants::T;
 
-int delta_start = v_start + T;
-int a_start = delta_start + T-1;
+int delta_start = v_start + Constants::T;
+int a_start = delta_start + Constants::T-1;
 
 cv::Point2i cv_offset(float x, float y, int image_width=2000, int image_height=2000){
   cv::Point2i output;
@@ -65,16 +69,16 @@ cv::Point2i cv_offset(float x, float y, int image_width=2000, int image_height=2
 };
 
 void update(State& state, float a, float delta){
-  if (delta >= MAX_STEER) delta = MAX_STEER;
-  if (delta <= - MAX_STEER) delta = - MAX_STEER;
+  if (delta >= Constants::MAX_STEER) delta = Constants::MAX_STEER;
+  if (delta <= - Constants::MAX_STEER) delta = - Constants::MAX_STEER;
 
-  state.x = state.x + state.v * std::cos(state.yaw) * DT;
-  state.y = state.y + state.v * std::sin(state.yaw) * DT;
-  state.yaw = state.yaw + state.v / WB * CppAD::tan(delta) * DT;
-  state.v = state.v + a * DT;
+  state.x = state.x + state.v * std::cos(state.yaw) * Constants::DT;
+  state.y = state.y + state.v * std::sin(state.yaw) * Constants::DT;
+  state.yaw = state.yaw + state.v / Constants::WB * CppAD::tan(delta) * Constants::DT;
+  state.v = state.v + a * Constants::DT;
 
-  if (state.v > MAX_SPEED) state.v = MAX_SPEED;
-  if (state.v < MIN_SPEED) state.v = MIN_SPEED;
+  if (state.v > Constants::MAX_SPEED) state.v = Constants::MAX_SPEED;
+  if (state.v < Constants::MIN_SPEED) state.v = Constants::MIN_SPEED;
 
 };
 
@@ -111,7 +115,7 @@ Vec_f calc_speed_profile(Vec_f rx, Vec_f ry, Vec_f ryaw, float target_speed){
 int calc_nearest_index(State state, Vec_f cx, Vec_f cy, Vec_f cyaw, int target_indx){
   float mind = std::numeric_limits<float>::max(); // assign very high value for comparison in if condition (d_e<mind)
   float ind = 0;
-  for(unsigned int i=target_indx; i<target_indx+N_IND_SEARCH; i++){
+  for(unsigned int i=target_indx; i<target_indx+Constants::N_IND_SEARCH; i++){
     float idx = cx[i] - state.x;        // cx: interpolated x values, state.x=cx[0]
     float idy = cy[i] - state.y;       //  cy: interpolated y values, state.y=cy[0]
     float d_e = idx*idx + idy*idy;    //  Euclidean distance between the vehicle's current state and the interpolated points
@@ -165,8 +169,8 @@ ck, Vec_f sp, float dl, int& target_ind, Eigen_ref& xref){  // cx, cy: interpola
   // PREDICTED HORIZON
   // T=6, it determines the number of columns in the xref matrix, representing the prediction horizon. This means the MPC is planning the vehicle's trajectory over the next 6 time steps into the future.
   // a prediction horizon is used to plan the vehicle's trajectory over a certain number of time steps into the future.
-  for(int i=0; i<T; i++){ // DT: time sample, dl: res
-    travel += std::abs(state.v) * DT; // state.v: velocity in current state, DT=0.2, traveled distance (travel) is established based on the assumption that
+  for(int i=0; i<Constants::T; i++){ // DT: time sample, dl: res
+    travel += std::abs(state.v) * Constants::DT; // state.v: velocity in current state, DT=0.2, traveled distance (travel) is established based on the assumption that
                                      //  the vehicle moves a certain distance per time step (DT) at its current velocity (state.v).
 
     // dl determines how much physical distance each index corresponds to.
@@ -226,12 +230,12 @@ public:
   void operator()(ADvector& fg, const ADvector& vars){
     fg[0] = 0;
 
-    for(int i=0; i<T-1; i++){
+    for(int i=0; i<Constants::T-1; i++){
       fg[0] +=  0.01 * CppAD::pow(vars[a_start+i], 2);
       fg[0] += 0.01 * CppAD::pow(vars[delta_start+i], 2);
     }
 
-    for(int i=0; i<T-2; i++){
+    for(int i=0; i<Constants::T-2; i++){
       fg[0] += 0.01 * CppAD::pow(vars[a_start+i+1] - vars[a_start+i], 2);
       fg[0] += 1 * CppAD::pow(vars[delta_start+i+1] - vars[delta_start+i], 2);
     }
@@ -248,7 +252,7 @@ public:
     // fg[0] += 0.5 * CppAD::pow(traj_ref(3, 0) - vars[v_start], 2);
 
     // The rest of the constraints
-    for (int i = 0; i < T - 1; i++) {
+    for (int i = 0; i < Constants::T - 1; i++) {
       // The state at time t+1 .
       AD<double> x1 = vars[x_start + i + 1];
       AD<double> y1 = vars[y_start + i + 1];
@@ -266,15 +270,15 @@ public:
       AD<double> a0 = vars[a_start + i];
 
       // constraint with the dynamic model
-      fg[2 + x_start + i] = x1 - (x0 + v0 * CppAD::cos(yaw0) * DT);
-      fg[2 + y_start + i] = y1 - (y0 + v0 * CppAD::sin(yaw0) * DT);
-      fg[2 + yaw_start + i] = yaw1 - (yaw0 + v0 * CppAD::tan(delta0) / WB * DT);
-      fg[2 + v_start + i] = v1 - (v0 + a0 * DT);
+      fg[2 + x_start + i] = x1 - (x0 + v0 * CppAD::cos(yaw0) * Constants::DT);
+      fg[2 + y_start + i] = y1 - (y0 + v0 * CppAD::sin(yaw0) * Constants::DT);
+      fg[2 + yaw_start + i] = yaw1 - (yaw0 + v0 * CppAD::tan(delta0) / Constants::WB * Constants::DT);
+      fg[2 + v_start + i] = v1 - (v0 + a0 * Constants::DT);
       // cost with the ref traj
-      fg[0] += CppAD::pow(traj_ref(0, i+1) - (x0 + v0 * CppAD::cos(yaw0) * DT), 2);
-      fg[0] += CppAD::pow(traj_ref(1, i+1) - (y0 + v0 * CppAD::sin(yaw0) * DT), 2);
-      fg[0] += 0.5 * CppAD::pow(traj_ref(2, i+1) - (yaw0 + v0 * CppAD::tan(delta0) / WB * DT), 2);
-      fg[0] += 0.5 * CppAD::pow(traj_ref(3, i+1) - (v0 + a0 * DT), 2);
+      fg[0] += CppAD::pow(traj_ref(0, i+1) - (x0 + v0 * CppAD::cos(yaw0) * Constants::DT), 2);
+      fg[0] += CppAD::pow(traj_ref(1, i+1) - (y0 + v0 * CppAD::sin(yaw0) * Constants::DT), 2);
+      fg[0] += 0.5 * CppAD::pow(traj_ref(2, i+1) - (yaw0 + v0 * CppAD::tan(delta0) / Constants::WB * Constants::DT), 2);
+      fg[0] += 0.5 * CppAD::pow(traj_ref(3, i+1) - (v0 + a0 * Constants::DT), 2);
     }
   }
 };
@@ -298,8 +302,8 @@ Vec_f mpc_solve(State x0, Eigen_ref traj_ref){
 
   // Control inputs, delta and acceleration, thats why (T - 1) * 2
   // In each time step, over the prediction horizon (T) has four states (x, y, yaw, v), thats why we multiplies 4
-  size_t n_vars = T * 4 + (T - 1) * 2; // T=6-->n_vars=34
-  size_t n_constraints = T * 4; // n_constraints=24
+  size_t n_vars = Constants::T * 4 + (Constants::T - 1) * 2; // T=6-->n_vars=34
+  size_t n_constraints = Constants::T * 4; // n_constraints=24
 
   Dvector vars(n_vars); // KALDIM!!!
   for (int i = 0; i < n_vars; i++){
@@ -323,19 +327,19 @@ Vec_f mpc_solve(State x0, Eigen_ref traj_ref){
     vars_upperbound[i] = 10000000.0;
   }
 
-  for (auto i = delta_start; i < delta_start+T-1; i++) {
-    vars_lowerbound[i] = -MAX_STEER;
-    vars_upperbound[i] = MAX_STEER;
+  for (auto i = delta_start; i < delta_start+Constants::T-1; i++) {
+    vars_lowerbound[i] = -Constants::MAX_STEER;
+    vars_upperbound[i] = Constants::MAX_STEER;
   }
 
-  for (auto i = a_start; i < a_start+T-1; i++) {
-    vars_lowerbound[i] = -MAX_ACCEL;
-    vars_upperbound[i] = MAX_ACCEL;
+  for (auto i = a_start; i < a_start+Constants::T-1; i++) {
+    vars_lowerbound[i] = -Constants::MAX_ACCEL;
+    vars_upperbound[i] = Constants::MAX_ACCEL;
   }
 
-  for (auto i = v_start; i < v_start+T; i++) {
-    vars_lowerbound[i] = MIN_SPEED;
-    vars_upperbound[i] = MAX_SPEED;
+  for (auto i = v_start; i < v_start+Constants::T; i++) {
+    vars_lowerbound[i] = Constants::MIN_SPEED;
+    vars_upperbound[i] = Constants::MAX_SPEED;
   }
 
   Dvector constraints_lowerbound(n_constraints);
@@ -417,14 +421,14 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
   Eigen_ref xref; // Eigen_ref=Eigen::Matrix<float, NX, T>
 
   std::cout << "Initialization : "<<std::endl;
-  for (int i = 0; i < NX; ++i) {
-    for (int j = 0; j < T; ++j) {
+  for (int i = 0; i < Constants::NX; ++i) {
+    for (int j = 0; j < Constants::T; ++j) {
         std::cout << "xref(" << i << ", " << j << ") = " << xref(i, j) << "\t";
     }
     std::cout << std::endl;
 }
 
-  while (MAX_TIME >= iter_count){
+  while (Constants::MAX_TIME >= iter_count){
   //while (390 >= iter_count){
     // Below function updates the columns of 'xref' with the future states, considering the discrete index shift 'discrete_distance_indx'
     calc_ref_trajectory(state, cx, cy, cyaw, ck, speed_profile, 1.0, target_ind, xref); // responsible for predicting the reference trajectory for the vehicle based on its current state and the available trajectory information.
@@ -447,8 +451,8 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
 
 
     std::cout << "After update : "<<std::endl;
-    for (int i = 0; i < NX; ++i) {
-    for (int j = 0; j < T; ++j) {
+    for (int i = 0; i < Constants::NX; ++i) {
+    for (int j = 0; j < Constants::T; ++j) {
         std::cout << "xref(" << i << ", " << j << ") = " << xref(i, j) << "\t";
     }
     std::cout << std::endl;
@@ -504,7 +508,7 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
     cv::line(
       bg,
       cv_offset(state.x, state.y, bg.cols, bg.rows),
-      cv_offset(state.x + std::cos(state.yaw)*WB*2, state.y + std::sin(state.yaw)*WB*2, bg.cols, bg.rows),
+      cv_offset(state.x + std::cos(state.yaw)*Constants::WB*2, state.y + std::sin(state.yaw)*Constants::WB*2, bg.cols, bg.rows),
       cv::Scalar(255,0,255),
       15);
 
@@ -521,17 +525,17 @@ void mpc_simulation(Vec_f cx, Vec_f cy, Vec_f cyaw, Vec_f ck, Vec_f speed_profil
 
     cv::line(
       bg,
-      cv_offset(state.x + std::cos(state.yaw)*WB*2 + std::cos(state.yaw+steer)*0.5,
-                state.y + std::sin(state.yaw)*WB*2 + std::sin(state.yaw+steer)*0.5,
+      cv_offset(state.x + std::cos(state.yaw)*Constants::WB*2 + std::cos(state.yaw+steer)*0.5,
+                state.y + std::sin(state.yaw)*Constants::WB*2 + std::sin(state.yaw+steer)*0.5,
                 bg.cols, bg.rows),
-      cv_offset(state.x + std::cos(state.yaw)*WB*2 - std::cos(state.yaw+steer)*0.5,
-                state.y + std::sin(state.yaw)*WB*2 - std::sin(state.yaw+steer)*0.5,
+      cv_offset(state.x + std::cos(state.yaw)*Constants::WB*2 - std::cos(state.yaw+steer)*0.5,
+                state.y + std::sin(state.yaw)*Constants::WB*2 - std::sin(state.yaw+steer)*0.5,
                 bg.cols, bg.rows),
       cv::Scalar(255,0,127),
       30);
 
-    for (int i = 0; i < NX; ++i) {
-    for (int j = 0; j < T; ++j) {
+    for (int i = 0; i < Constants::NX; ++i) {
+    for (int j = 0; j < Constants::T; ++j) {
         std::cout << "xref(" << i << ", " << j << ") = " << xref(i, j) << "\t";
     }
     std::cout << std::endl;
